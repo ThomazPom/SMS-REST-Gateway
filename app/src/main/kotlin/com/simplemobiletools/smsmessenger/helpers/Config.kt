@@ -15,6 +15,23 @@ class Config(context: Context) : BaseConfig(context) {
     }
 
     fun getUseSIMIdAtNumber(number: String) = prefs.getInt(USE_SIM_ID_PREFIX + number, 0)
+    var sendSmsToGateway: Boolean
+        get() = prefs.getBoolean(SEND_SMS_TO_GATEWAY, false)
+        set(sendSmsToGateway) = prefs.edit().putBoolean(SEND_SMS_TO_GATEWAY, sendSmsToGateway).apply()
+    var disableSMSLogging: Boolean
+        get() = prefs.getBoolean(DISABLE_SMS_DISPLAY, false)
+        set(disableSMSLogging) = prefs.edit().putBoolean(DISABLE_SMS_DISPLAY, disableSMSLogging).apply()
+
+
+    var gatewayURL: String?
+        get() = prefs.getString(API_URL,"")
+        set(gatewayURL) = prefs.edit().putString(API_URL, gatewayURL).apply()
+
+    var gatewayPassword: String?
+        get() = prefs.getString(API_PASSWORD,"")
+        set(gatewayPassword) = prefs.edit().putString(API_PASSWORD, gatewayPassword).apply()
+
+
 
     var showCharacterCounter: Boolean
         get() = prefs.getBoolean(SHOW_CHARACTER_COUNTER, false)

@@ -66,7 +66,7 @@ class ConversationsAdapter(
     }
 
     private fun tryBlocking() {
-        if (activity.isOrWasThankYouInstalled()) {
+        if (true) {
             askConfirmBlock()
         } else {
             FeatureLockedDialog(activity) { }

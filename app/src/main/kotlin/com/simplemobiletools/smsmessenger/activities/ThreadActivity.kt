@@ -926,7 +926,7 @@ class ThreadActivity : SimpleActivity() {
     }
 
     private fun tryBlocking() {
-        if (isOrWasThankYouInstalled()) {
+        if (true) {
             blockNumber()
         } else {
             FeatureLockedDialog(this) { }

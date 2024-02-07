@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.widget.addTextChangedListener
 import com.simplemobiletools.commons.activities.ManageBlockedNumbersActivity
 import com.simplemobiletools.commons.dialogs.*
 import com.simplemobiletools.commons.extensions.*
@@ -49,7 +50,10 @@ class SettingsActivity : SimpleActivity() {
     override fun onResume() {
         super.onResume()
         setupToolbar(binding.settingsToolbar, NavigationIcon.Arrow)
-
+        setupAPIPassword()
+        setupAPIUrl()
+        setupDisableSMSDisplay()
+        setupSendSmsToGateway()
         setupPurchaseThankYou()
         setupCustomizeColors()
         setupCustomizeNotifications()
@@ -147,7 +151,7 @@ class SettingsActivity : SimpleActivity() {
     }
 
     private fun setupPurchaseThankYou() = binding.apply {
-        settingsPurchaseThankYouHolder.beGoneIf(isOrWasThankYouInstalled())
+        settingsPurchaseThankYouHolder.beGoneIf(true)
         settingsPurchaseThankYouHolder.setOnClickListener {
             launchPurchaseThankYouIntent()
         }
@@ -156,7 +160,8 @@ class SettingsActivity : SimpleActivity() {
     private fun setupCustomizeColors() = binding.apply {
         settingsColorCustomizationLabel.text = getCustomizeColorsString()
         settingsColorCustomizationHolder.setOnClickListener {
-            handleCustomizeColorsClick()
+
+            startCustomizationActivity()
         }
     }
 
@@ -192,7 +197,7 @@ class SettingsActivity : SimpleActivity() {
         settingsManageBlockedNumbersHolder.beVisibleIf(isNougatPlus())
 
         settingsManageBlockedNumbersHolder.setOnClickListener {
-            if (isOrWasThankYouInstalled()) {
+            if (true) {
                 Intent(this@SettingsActivity, ManageBlockedNumbersActivity::class.java).apply {
                     startActivity(this)
                 }
@@ -206,7 +211,7 @@ class SettingsActivity : SimpleActivity() {
         settingsManageBlockedKeywords.text = addLockedLabelIfNeeded(R.string.manage_blocked_keywords)
 
         settingsManageBlockedKeywordsHolder.setOnClickListener {
-            if (isOrWasThankYouInstalled()) {
+            if (true) {
                 Intent(this@SettingsActivity, ManageBlockedKeywordsActivity::class.java).apply {
                     startActivity(this)
                 }
@@ -241,6 +246,38 @@ class SettingsActivity : SimpleActivity() {
         }
     }
 
+    private fun setupSendSmsToGateway() = binding.apply {
+
+        sendSmsToGateway.isChecked = config.sendSmsToGateway
+        settingsSendSmsToGatewayHolder.setOnClickListener {
+            sendSmsToGateway.toggle()
+            config.sendSmsToGateway = sendSmsToGateway.isChecked
+        }
+    }
+    private fun setupDisableSMSDisplay() = binding.apply {
+        disableSmsLogging.isChecked = config.disableSMSLogging
+        settingsDisableSmsLoggingHolder.setOnClickListener {
+            disableSmsLogging.toggle()
+            config.disableSMSLogging = disableSmsLogging.isChecked
+        }
+    }
+    private fun setupAPIUrl() = binding.apply {
+        gatewayUrl.setText(config.gatewayURL)
+
+        // .isChecked = config.showCharacterCounter
+        gatewayUrl.addTextChangedListener{
+            config.gatewayURL=gatewayUrl.text.toString()
+        }
+    }
+    private fun setupAPIPassword() = binding.apply {
+        gatewayPassword.setText(config.gatewayPassword)
+
+
+        // .isChecked = config.showCharacterCounter
+        gatewayPassword.addTextChangedListener{
+            config.gatewayPassword=gatewayPassword.text.toString()
+        }
+    }
     private fun setupShowCharacterCounter() = binding.apply {
         settingsShowCharacterCounter.isChecked = config.showCharacterCounter
         settingsShowCharacterCounterHolder.setOnClickListener {

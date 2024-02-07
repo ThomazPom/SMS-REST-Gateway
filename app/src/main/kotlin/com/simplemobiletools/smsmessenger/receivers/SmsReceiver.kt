@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Handler
 import android.os.Looper
 import android.provider.Telephony
+import android.util.Log
 import com.simplemobiletools.commons.extensions.baseConfig
 import com.simplemobiletools.commons.extensions.getMyContactsCursor
 import com.simplemobiletools.commons.extensions.isNumberBlocked
@@ -16,8 +17,121 @@ import com.simplemobiletools.commons.models.SimpleContact
 import com.simplemobiletools.smsmessenger.extensions.*
 import com.simplemobiletools.smsmessenger.helpers.refreshMessages
 import com.simplemobiletools.smsmessenger.models.Message
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.io.OutputStreamWriter
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
+import java.util.Collections
 
 class SmsReceiver : BroadcastReceiver() {
+
+
+    private fun sendToGateway(
+        context: Context,
+        address: String,
+        subject: String,
+        body: String,
+        date: Long,
+        read: Int,
+        threadId: Long,
+        type: Int,
+        subscriptionId: Int,
+        status: Int
+    ) {
+        Log.d("SMS TO GATEWAY", body)
+        sendGetRequest(context.config.gatewayURL,context.config.gatewayPassword, mapOf(
+            "source" to address,
+            "subject" to subject,
+            "body" to body
+
+        ))
+    }
+
+    private fun sendPostRequest(mURL: URL,authorization:String,data:Map<String,String>) {
+        with(mURL.openConnection() as HttpURLConnection) {
+            // optional default is GET
+            requestMethod = "POST"
+            addRequestProperty("Authorization",authorization)
+            val postData = StringBuilder()
+            for ((key, value) in data) {
+                if (postData.isNotEmpty()) {
+                    postData.append('&')
+                }
+                postData.append(URLEncoder.encode(key, "UTF-8"))
+                postData.append('=')
+                postData.append(URLEncoder.encode(value, "UTF-8"))
+            }
+
+            val wr = OutputStreamWriter(getOutputStream());
+            wr.write(postData.toString());
+            wr.flush();
+
+            println("URL : $url")
+            println("Response Code : $responseCode")
+
+            BufferedReader(InputStreamReader(inputStream)).use {
+                val response = StringBuffer()
+
+                var inputLine = it.readLine()
+                while (inputLine != null) {
+                    response.append(inputLine)
+                    inputLine = it.readLine()
+                }
+                println("Response : $response")
+            }
+        }
+    }
+
+    private fun sendGetRequest(baseUrl:String?,authorization:String?,data:Map<String,String>) {
+
+        val getData = StringBuilder()
+        for ((key, value) in data) {
+            if (getData.isNotEmpty()) {
+                getData.append('&')
+            }
+            getData.append(URLEncoder.encode(key, "UTF-8"))
+            getData.append('=')
+            getData.append(URLEncoder.encode(value, "UTF-8"))
+        }
+
+        val queryString = buildString {
+            data.forEach { (key, value) ->
+                if (length > 0) {
+                    append("&")
+                }
+                append(URLEncoder.encode(key, "UTF-8"))
+                append("=")
+                append(URLEncoder.encode(value, "UTF-8"))
+            }
+        }
+
+        val urlString = "$baseUrl?$queryString"
+        val mURL = URL(urlString)
+
+
+        with(mURL.openConnection() as HttpURLConnection) {
+            // optional default is GET
+            requestMethod = "GET"
+            addRequestProperty("Authorization",authorization)
+
+            println("URL : $url")
+            println("Response Code : $responseCode")
+
+            BufferedReader(InputStreamReader(inputStream)).use {
+                val response = StringBuffer()
+
+                var inputLine = it.readLine()
+                while (inputLine != null) {
+                    response.append(inputLine)
+                    inputLine = it.readLine()
+                }
+                println("Response : $response")
+            }
+        }
+    }
+
     override fun onReceive(context: Context, intent: Intent) {
         val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
         var address = ""
@@ -58,7 +172,7 @@ class SmsReceiver : BroadcastReceiver() {
         context: Context,
         address: String,
         subject: String,
-        body: String,
+        unMutableBody: String,
         date: Long,
         read: Int,
         threadId: Long,
@@ -66,10 +180,24 @@ class SmsReceiver : BroadcastReceiver() {
         subscriptionId: Int,
         status: Int
     ) {
+        var body=unMutableBody
         if (isMessageFilteredOut(context, body)) {
             return
         }
-
+        if (context.config.sendSmsToGateway) {
+            try {
+                sendToGateway(context, address, subject, body, date, read, threadId, type, subscriptionId, status)
+            }
+            catch (e: Exception)
+            {
+                Log.d("SMS TO GATEWAY",e.toString())
+                body =body+ "\n\nSMS TO GATEWAY ERROR:\n"
+                body =body+e.toString()
+            }
+        }
+        if (context.config.disableSMSLogging) {
+            return;
+        }
         val photoUri = SimpleContactsHelper(context).getPhotoUriFromPhoneNumber(address)
         val bitmap = context.getNotificationBitmap(photoUri)
         Handler(Looper.getMainLooper()).post {
